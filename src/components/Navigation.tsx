@@ -37,10 +37,13 @@ export default function Navigation() {
               // Scrolling down - reduzir barra e esconder menu mobile
               setIsScrolled(true)
               setIsVisible(false)
-            } else if (currentScrollY < lastScrollY) {
+            } else if (currentScrollY < lastScrollY && currentScrollY > 10) {
               // Scrolling up - mostrar barra compacta mas visível
               setIsScrolled(true)
               setIsVisible(true)
+            } else {
+              // Manter estado atual se não houver mudança significativa
+              setIsScrolled(currentScrollY > 10)
             }
           } else {
             // Desktop: apenas marcar como scrolled
@@ -55,6 +58,9 @@ export default function Navigation() {
       }
     }
 
+    // Inicializar estado baseado na posição inicial
+    handleScroll()
+    
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [lastScrollY, isMobile])
@@ -70,10 +76,12 @@ export default function Navigation() {
 
   return (
     <nav 
-      className={`bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled && isMobile 
-          ? 'shadow-md h-12' 
-          : 'shadow-lg h-14 sm:h-16'
+      className={`sticky top-0 z-50 border-b border-gray-200 transition-all duration-300 ${
+        isMobile 
+          ? 'bg-white shadow-md' 
+          : 'bg-white/95 backdrop-blur-sm shadow-lg'
+      } ${
+        isScrolled && isMobile ? 'shadow-sm' : ''
       }`}
       role="navigation" 
       aria-label="Navegação principal"
@@ -89,8 +97,8 @@ export default function Navigation() {
                   size={isScrolled && isMobile ? "sm" : "md"} 
                   className={isScrolled && isMobile ? "scale-125" : "scale-150"} 
                 />
-                <span className={`font-bold bg-gradient-to-r from-gray-900 to-fuchsia-700 bg-clip-text text-transparent transition-all duration-300 ${
-                  isScrolled && isMobile ? 'text-base' : 'text-lg sm:text-xl'
+                <span className={`font-bold text-gray-900 transition-all duration-300 ${
+                  isScrolled && isMobile ? 'text-sm' : 'text-lg sm:text-xl'
                 }`}>
                   FluxusAI
                 </span>
@@ -119,9 +127,10 @@ export default function Navigation() {
       
       {/* Mobile menu */}
       <div 
-        className={`sm:hidden border-t border-gray-200 bg-white/98 backdrop-blur-sm overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`sm:hidden border-t border-gray-200 bg-white overflow-hidden transition-all duration-300 ease-in-out ${
           isVisible && isMobile ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 border-t-0'
         }`}
+        aria-hidden={!isVisible || !isMobile}
       >
         <div className="pt-2 pb-3 space-y-1 px-3">
           {navItems.map((item) => (
