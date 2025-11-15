@@ -15,15 +15,6 @@ interface Alert {
   status: 'pending' | 'reviewed' | 'resolved'
 }
 
-interface Prescription {
-  id: string
-  patient: string
-  bed: string
-  medications: string[]
-  status: 'normal' | 'flagged' | 'critical'
-  aiScore: number
-}
-
 export default function Page6ClinicalPharmacy() {
   const { state } = useAppState()
   const { items } = useInventory()
