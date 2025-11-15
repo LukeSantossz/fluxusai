@@ -73,6 +73,19 @@ npm run preview
 - Navegação por teclado
 - Foco visual claro
 
+## 🚀 Deploy no Vercel
+
+O projeto está configurado para deploy no Vercel. Veja o arquivo [DEPLOY.md](./DEPLOY.md) para instruções detalhadas.
+
+### Deploy Rápido
+
+1. Faça push do código para GitHub/GitLab/Bitbucket
+2. Acesse [vercel.com](https://vercel.com) e importe o repositório
+3. O Vercel detectará automaticamente as configurações do Vite
+4. Clique em "Deploy"
+
+O arquivo `vercel.json` já está configurado para garantir que o React Router funcione corretamente.
+
 ## 📄 Licença
 
 Este é um projeto MVP para demonstração.
