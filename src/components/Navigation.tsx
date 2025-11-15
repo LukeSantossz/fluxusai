@@ -27,23 +27,21 @@ export default function Navigation() {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY
 
-          // No mobile, controlar visibilidade e tamanho baseado no scroll
+          // No mobile: barra reduzida por padrão, só expande no topo
           if (isMobile) {
             if (currentScrollY < 10) {
-              // No topo, sempre mostrar completo
+              // No topo: mostrar completo
               setIsScrolled(false)
               setIsVisible(true)
-            } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
-              // Scrolling down - reduzir barra e esconder menu mobile
-              setIsScrolled(true)
-              setIsVisible(false)
-            } else if (currentScrollY < lastScrollY && currentScrollY > 10) {
-              // Scrolling up - mostrar barra compacta mas visível
-              setIsScrolled(true)
-              setIsVisible(true)
             } else {
-              // Manter estado atual se não houver mudança significativa
-              setIsScrolled(currentScrollY > 10)
+              // Qualquer outro lugar: barra reduzida
+              setIsScrolled(true)
+              // Menu aparece quando scrolla para cima, esconde quando scrolla para baixo
+              if (currentScrollY > lastScrollY && currentScrollY > 50) {
+                setIsVisible(false)
+              } else if (currentScrollY < lastScrollY) {
+                setIsVisible(true)
+              }
             }
           } else {
             // Desktop: apenas marcar como scrolled
@@ -59,7 +57,14 @@ export default function Navigation() {
     }
 
     // Inicializar estado baseado na posição inicial
-    handleScroll()
+    const initialScrollY = window.scrollY
+    if (isMobile) {
+      setIsScrolled(initialScrollY >= 10)
+      setIsVisible(initialScrollY < 10)
+    } else {
+      setIsScrolled(initialScrollY > 10)
+      setIsVisible(true)
+    }
     
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
