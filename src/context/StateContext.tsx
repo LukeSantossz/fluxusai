@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 export type BedStatus = 'WAITING_SIGNATURE' | 'WAITING_CLEANING' | 'READY'
 

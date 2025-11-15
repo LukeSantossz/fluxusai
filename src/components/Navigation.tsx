@@ -18,7 +18,7 @@ export default function Navigation() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <Logo size="md" />
+                <Logo size="md" className="scale-150" />
                 <span className="text-xl font-bold text-gray-900">FluxusAI</span>
               </Link>
             </div>
