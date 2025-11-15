@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
 interface Alert {
@@ -23,7 +23,7 @@ interface Prescription {
 }
 
 export default function Page6ClinicalPharmacy() {
-  const [alerts] = useState<Alert[]>([
+  const [alerts, setAlerts] = useState<Alert[]>([
     {
       id: '1',
       type: 'interaction',
@@ -70,7 +70,7 @@ export default function Page6ClinicalPharmacy() {
     },
   ])
 
-  const [prescriptions] = useState<Prescription[]>([
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([
     {
       id: '1',
       patient: 'Maria Silva',
@@ -104,6 +104,42 @@ export default function Page6ClinicalPharmacy() {
       aiScore: 15,
     },
   ])
+
+  const [filterAlertType, setFilterAlertType] = useState<string>('all')
+  const [filterAlertPriority, setFilterAlertPriority] = useState<string>('all')
+  const [filterPrescriptionStatus, setFilterPrescriptionStatus] = useState<string>('all')
+  const [selectedAlert, setSelectedAlert] = useState<string | null>(null)
+  const [selectedPrescription, setSelectedPrescription] = useState<string | null>(null)
+
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((alert) => {
+      const matchesType = filterAlertType === 'all' || alert.type === filterAlertType
+      const matchesPriority = filterAlertPriority === 'all' || alert.priority === filterAlertPriority
+      return matchesType && matchesPriority
+    })
+  }, [alerts, filterAlertType, filterAlertPriority])
+
+  const filteredPrescriptions = useMemo(() => {
+    return prescriptions.filter((prescription) => {
+      return filterPrescriptionStatus === 'all' || prescription.status === filterPrescriptionStatus
+    })
+  }, [prescriptions, filterPrescriptionStatus])
+
+  const handleReviewAlert = (alertId: string) => {
+    setAlerts((prev) =>
+      prev.map((alert) =>
+        alert.id === alertId ? { ...alert, status: 'reviewed' as const } : alert
+      )
+    )
+  }
+
+  const handleResolveAlert = (alertId: string) => {
+    setAlerts((prev) =>
+      prev.map((alert) =>
+        alert.id === alertId ? { ...alert, status: 'resolved' as const } : alert
+      )
+    )
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -218,13 +254,71 @@ export default function Page6ClinicalPharmacy() {
           </div>
         </div>
 
+        {/* Filtros */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-6 border border-gray-200">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-4">Filtros</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Tipo de Alerta
+              </label>
+              <select
+                value={filterAlertType}
+                onChange={(e) => setFilterAlertType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="all">Todos</option>
+                <option value="interaction">Interação</option>
+                <option value="dose">Dose</option>
+                <option value="allergy">Alergia</option>
+                <option value="critical">Crítico</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Prioridade
+              </label>
+              <select
+                value={filterAlertPriority}
+                onChange={(e) => setFilterAlertPriority(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="all">Todas</option>
+                <option value="high">Alta</option>
+                <option value="medium">Média</option>
+                <option value="low">Baixa</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Status Prescrição
+              </label>
+              <select
+                value={filterPrescriptionStatus}
+                onChange={(e) => setFilterPrescriptionStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="all">Todas</option>
+                <option value="normal">Normal</option>
+                <option value="flagged">Sinalizada</option>
+                <option value="critical">Crítica</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Alertas Críticos */}
         <div className="mb-6 sm:mb-8 animate-slide-down">
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4">
-            Alertas de Segurança Pendentes
+            Alertas de Segurança ({filteredAlerts.filter((a) => a.status === 'pending').length} pendentes)
           </h2>
           <div className="space-y-3 sm:space-y-4">
-            {pendingAlerts.map((alert) => (
+            {filteredAlerts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Nenhum alerta encontrado com os filtros aplicados
+              </div>
+            ) : (
+              filteredAlerts.map((alert) => (
               <div
                 key={alert.id}
                 className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border-2 border-red-300 p-4 sm:p-6 hover:shadow-2xl transition-all duration-300"
@@ -247,26 +341,72 @@ export default function Page6ClinicalPharmacy() {
                     <p className="text-xs text-gray-500">Detectado em: {alert.time}</p>
                   </div>
                   <div className="flex gap-2 sm:flex-col">
-                    <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap">
-                      Revisar Agora
-                    </button>
-                    <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap">
-                      Detalhes
+                    {alert.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleReviewAlert(alert.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                        >
+                          Revisar Agora
+                        </button>
+                        <button
+                          onClick={() => handleResolveAlert(alert.id)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                        >
+                          Resolver
+                        </button>
+                      </>
+                    )}
+                    {alert.status === 'reviewed' && (
+                      <button
+                        onClick={() => handleResolveAlert(alert.id)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                      >
+                        Marcar como Resolvido
+                      </button>
+                    )}
+                    {alert.status === 'resolved' && (
+                      <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-semibold whitespace-nowrap">
+                        ✓ Resolvido
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setSelectedAlert(selectedAlert === alert.id ? null : alert.id)}
+                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                    >
+                      {selectedAlert === alert.id ? 'Ocultar' : 'Detalhes'}
                     </button>
                   </div>
                 </div>
+                {selectedAlert === alert.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-gray-900 mb-2">Detalhes do Alerta:</p>
+                    <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
+                      <li>• Tipo: {alert.type === 'interaction' ? 'Interação Medicamentosa' : alert.type === 'dose' ? 'Dose Fora do Padrão' : alert.type === 'allergy' ? 'Alergia' : 'Crítico'}</li>
+                      <li>• Prioridade: {alert.priority === 'high' ? 'Alta' : alert.priority === 'medium' ? 'Média' : 'Baixa'}</li>
+                      <li>• Status: {alert.status === 'pending' ? 'Pendente' : alert.status === 'reviewed' ? 'Revisado' : 'Resolvido'}</li>
+                      <li>• Medicamento: {alert.medication}</li>
+                    </ul>
+                  </div>
+                )}
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         {/* Prescrições Analisadas pela IA */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 border border-gray-200">
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
-            Prescrições Analisadas pela IA
+            Prescrições Analisadas pela IA ({filteredPrescriptions.length})
           </h2>
           <div className="space-y-3 sm:space-y-4">
-            {prescriptions.map((prescription) => (
+            {filteredPrescriptions.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Nenhuma prescrição encontrada com os filtros aplicados
+              </div>
+            ) : (
+              filteredPrescriptions.map((prescription) => (
               <div
                 key={prescription.id}
                 className={`p-4 sm:p-5 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
@@ -313,12 +453,59 @@ export default function Page6ClinicalPharmacy() {
                       ))}
                     </div>
                   </div>
-                  <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap">
-                    Analisar Detalhes
+                  <button
+                    onClick={() => setSelectedPrescription(selectedPrescription === prescription.id ? null : prescription.id)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                  >
+                    {selectedPrescription === prescription.id ? 'Ocultar' : 'Analisar Detalhes'}
                   </button>
                 </div>
+                {selectedPrescription === prescription.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">Análise Detalhada pela IA:</p>
+                    <div className="space-y-2 text-xs sm:text-sm text-gray-700">
+                      <div className="flex items-center justify-between">
+                        <span>Score de Risco:</span>
+                        <span className={`font-bold ${prescription.aiScore > 70 ? 'text-red-600' : prescription.aiScore > 40 ? 'text-orange-600' : 'text-green-600'}`}>
+                          {prescription.aiScore}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Status:</span>
+                        <span className={`font-semibold ${
+                          prescription.status === 'critical' ? 'text-red-600' : 
+                          prescription.status === 'flagged' ? 'text-orange-600' : 
+                          'text-green-600'
+                        }`}>
+                          {prescription.status === 'critical' ? 'Crítico' : 
+                           prescription.status === 'flagged' ? 'Sinalizado' : 
+                           'Normal'}
+                        </span>
+                      </div>
+                      <div className="mt-3">
+                        <p className="font-medium mb-2">Medicamentos Prescritos:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {prescription.medications.map((med, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300"
+                            >
+                              {med}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {prescription.aiScore > 70 && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="font-semibold text-red-900 text-xs">⚠️ Atenção: Esta prescrição requer revisão imediata do farmacêutico clínico.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

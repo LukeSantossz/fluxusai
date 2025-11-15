@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
 interface InventoryItem {
@@ -14,7 +14,7 @@ interface InventoryItem {
 }
 
 export default function Page5InventoryManagement() {
-  const [items] = useState<InventoryItem[]>([
+  const [items, setItems] = useState<InventoryItem[]>([
     {
       id: '1',
       name: 'Soro Fisiológico 0,9% 500ml',
@@ -71,6 +71,80 @@ export default function Page5InventoryManagement() {
       lastUpdate: '2024-01-15 11:45',
     },
   ])
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const categories = useMemo(() => {
+    const cats = new Set(items.map((item) => item.category))
+    return Array.from(cats)
+  }, [items])
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = filterCategory === 'all' || item.category === filterCategory
+      const matchesStatus = filterStatus === 'all' || item.status === filterStatus
+      return matchesSearch && matchesCategory && matchesStatus
+    })
+  }, [items, searchTerm, filterCategory, filterStatus])
+
+  const handleUpdateStock = () => {
+    setIsUpdating(true)
+    setTimeout(() => {
+      // Simular atualização
+      setItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          lastUpdate: new Date().toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        }))
+      )
+      setIsUpdating(false)
+    }, 1000)
+  }
+
+  const handleAddStock = (itemId: string, amount: number) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const newStock = item.currentStock + amount
+          let newStatus: 'ok' | 'low' | 'critical' | 'out' = item.status
+          
+          if (newStock >= item.minStock) {
+            newStatus = 'ok'
+          } else if (newStock > item.minStock * 0.5) {
+            newStatus = 'low'
+          } else if (newStock > 0) {
+            newStatus = 'critical'
+          } else {
+            newStatus = 'out'
+          }
+
+          return {
+            ...item,
+            currentStock: newStock,
+            status: newStatus,
+            lastUpdate: new Date().toLocaleString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          }
+        }
+        return item
+      })
+    )
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -194,15 +268,79 @@ export default function Page5InventoryManagement() {
           </div>
         </div>
 
+        {/* Filtros e Busca */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-6 border border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Busca */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Buscar Item
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Nome do item..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Filtro por Categoria */}
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Categoria
+              </label>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Todas</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtro por Status */}
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Todos</option>
+                <option value="ok">OK</option>
+                <option value="low">Baixo</option>
+                <option value="critical">Crítico</option>
+                <option value="out">Esgotado</option>
+              </select>
+            </div>
+
+            {/* Botão Atualizar */}
+            <div className="flex items-end">
+              <button
+                onClick={handleUpdateStock}
+                disabled={isUpdating}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed"
+              >
+                {isUpdating ? 'Atualizando...' : 'Atualizar Estoque'}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Lista de Itens */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 border border-gray-200">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-              Itens em Estoque
+              Itens em Estoque ({filteredItems.length})
             </h2>
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105">
-              Atualizar Estoque
-            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -218,34 +356,52 @@ export default function Page5InventoryManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-2 sm:px-4">
-                      <p className="text-sm sm:text-base font-medium text-gray-900">{item.name}</p>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4">
-                      <span className="text-xs sm:text-sm text-gray-600">{item.category}</span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-center">
-                      <span className="text-sm sm:text-base font-semibold text-gray-900">
-                        {item.currentStock} {item.unit}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-center">
-                      <span className="text-xs sm:text-sm text-gray-600">
-                        {item.minStock} / {item.maxStock}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.status)}`}>
-                        {getStatusLabel(item.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-4 text-right">
-                      <span className="text-xs text-gray-500">{item.lastUpdate}</span>
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                      Nenhum item encontrado com os filtros aplicados
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-2 sm:px-4">
+                        <p className="text-sm sm:text-base font-medium text-gray-900">{item.name}</p>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4">
+                        <span className="text-xs sm:text-sm text-gray-600">{item.category}</span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-sm sm:text-base font-semibold text-gray-900">
+                            {item.currentStock} {item.unit}
+                          </span>
+                          {(item.status === 'low' || item.status === 'critical' || item.status === 'out') && (
+                            <button
+                              onClick={() => handleAddStock(item.id, 50)}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              +50
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-center">
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          {item.minStock} / {item.maxStock}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.status)}`}>
+                          {getStatusLabel(item.status)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-right">
+                        <span className="text-xs text-gray-500">{item.lastUpdate}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
