@@ -43,7 +43,7 @@ export default function Page3CleaningTasks() {
         setTasks((prev) => [
           {
             id: 'pcp-1',
-            title: `URGENTE (PCP): Higienizar Leito ${state.bedNumber}`,
+            title: `URGENTE (PCP Nível ${state.pcpLevel || '?'}): Higienizar Leito ${state.bedNumber}`,
             bedNumber: state.bedNumber,
             priority: 'urgent',
             completed: false,
@@ -53,7 +53,7 @@ export default function Page3CleaningTasks() {
         ])
       }, 500)
     }
-  }, [state.medicalConfirmed, showPCPTask, state.cleaningCompleted, state.bedNumber])
+  }, [state.medicalConfirmed, showPCPTask, state.cleaningCompleted, state.bedNumber, state.pcpLevel])
 
   const handleCompleteTask = (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId)

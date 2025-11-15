@@ -231,9 +231,16 @@ export default function Page4StatusDashboard() {
               <span className="font-medium">Leito monitorado:</span> {state.bedNumber}
             </p>
             <p>
-              <span className="font-medium">PCP Nível 1:</span>{' '}
-              {state.pcpActivated ? (
-                <span className="text-green-600 font-semibold">Ativado</span>
+              <span className="font-medium">PCP:</span>{' '}
+              {state.pcpActivated && state.pcpLevel ? (
+                <span className={`font-semibold ${
+                  state.pcpLevel === 1 ? 'text-blue-600' :
+                  state.pcpLevel === 2 ? 'text-yellow-600' :
+                  state.pcpLevel === 3 ? 'text-orange-600' :
+                  'text-red-600'
+                }`}>
+                  Nível {state.pcpLevel} Ativado
+                </span>
               ) : (
                 <span className="text-gray-400">Não ativado</span>
               )}

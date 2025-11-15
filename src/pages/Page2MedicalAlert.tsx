@@ -127,9 +127,16 @@ export default function Page2MedicalAlert() {
               ALERTA DE PRIORIDADE COLETIVA
             </h2>
             <div className="text-center mb-4 sm:mb-6">
-              <span className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-fuchsia-100 text-fuchsia-800 text-xs sm:text-sm font-semibold rounded-full shadow-sm">
-                PCP NÍVEL 1
-              </span>
+              {state.pcpLevel && (
+                <span className={`inline-block px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-full shadow-sm ${
+                  state.pcpLevel === 1 ? 'bg-blue-100 text-blue-800' :
+                  state.pcpLevel === 2 ? 'bg-yellow-100 text-yellow-800' :
+                  state.pcpLevel === 3 ? 'bg-orange-100 text-orange-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  PCP NÍVEL {state.pcpLevel}
+                </span>
+              )}
             </div>
 
             {/* Task Description */}
@@ -224,9 +231,9 @@ export default function Page2MedicalAlert() {
                 </svg>
               </div>
             </div>
-            <p className="text-base sm:text-lg mb-2 font-medium">Aguardando ativação do PCP Nível 1</p>
+            <p className="text-base sm:text-lg mb-2 font-medium">Aguardando ativação do PCP</p>
             <p className="text-sm sm:text-base text-gray-300">
-              O alerta aparecerá automaticamente quando o PCP for declarado
+              O alerta aparecerá automaticamente quando um nível de PCP for declarado
             </p>
           </div>
         </div>

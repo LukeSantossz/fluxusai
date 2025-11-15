@@ -4,18 +4,60 @@ import { useAppState } from '../context/StateContext'
 
 export default function Page1ControlPanel() {
   const { state, activatePCP } = useAppState()
-  const [isLoading, setIsLoading] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isLoading, setIsLoading] = useState<number | null>(null)
+  const [showConfirmation, setShowConfirmation] = useState<number | null>(null)
 
-  const handleActivatePCP = () => {
-    setIsLoading(true)
+  const handleActivatePCP = (level: 1 | 2 | 3 | 4) => {
+    setIsLoading(level)
     
     // Simular delay de processamento
     setTimeout(() => {
-      activatePCP()
-      setIsLoading(false)
-      setShowConfirmation(true)
+      activatePCP(level)
+      setIsLoading(null)
+      setShowConfirmation(level)
     }, 1000)
+  }
+
+  const getPCPLevelInfo = (level: 1 | 2 | 3 | 4) => {
+    const levels = {
+      1: { 
+        name: 'Nível 1', 
+        description: 'Situação normal ou próxima do normal',
+        color: 'from-blue-600 via-blue-700 to-indigo-600',
+        hoverColor: 'hover:from-blue-700 hover:via-blue-800 hover:to-indigo-700',
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-800',
+        borderColor: 'border-blue-300'
+      },
+      2: { 
+        name: 'Nível 2', 
+        description: 'Aumento moderado de demanda',
+        color: 'from-yellow-600 via-yellow-700 to-orange-600',
+        hoverColor: 'hover:from-yellow-700 hover:via-yellow-800 hover:to-orange-700',
+        bgColor: 'bg-yellow-50',
+        textColor: 'text-yellow-800',
+        borderColor: 'border-yellow-300'
+      },
+      3: { 
+        name: 'Nível 3', 
+        description: 'Alta demanda, recursos intensivos',
+        color: 'from-orange-600 via-orange-700 to-red-600',
+        hoverColor: 'hover:from-orange-700 hover:via-orange-800 hover:to-red-700',
+        bgColor: 'bg-orange-50',
+        textColor: 'text-orange-800',
+        borderColor: 'border-orange-300'
+      },
+      4: { 
+        name: 'Nível 4', 
+        description: 'Situação crítica, recursos esgotados',
+        color: 'from-red-600 via-red-700 to-red-800',
+        hoverColor: 'hover:from-red-700 hover:via-red-800 hover:to-red-900',
+        bgColor: 'bg-red-50',
+        textColor: 'text-red-800',
+        borderColor: 'border-red-300'
+      },
+    }
+    return levels[level]
   }
 
   return (
@@ -33,146 +75,136 @@ export default function Page1ControlPanel() {
             Painel de Controle NIR
           </h1>
           <p className="text-sm sm:text-base md:text-lg text-gray-600 font-medium">
-            Gestão de Mobilização PCP Nível 1
+            Gestão de Mobilização PCP - Escala de Níveis
           </p>
         </div>
 
         {/* Main Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl sm:shadow-3xl p-5 sm:p-8 md:p-12 border border-white/50 hover:shadow-3xl hover:scale-[1.02] transition-all duration-500 animate-scale-in">
           <div className="text-center">
-            {/* Icon with animation */}
-            <div className="mb-6 sm:mb-8 md:mb-10 flex justify-center">
-              <div className="relative">
-                <div className="absolute inset-0 bg-fuchsia-400/30 rounded-full blur-xl animate-pulse-glow" />
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gradient-to-br from-fuchsia-100 via-fuchsia-200 to-purple-200 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 animate-bounce-in border-4 border-white">
-                  <svg
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-fuchsia-600 drop-shadow-lg"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                </div>
-              </div>
+            {/* PCP Level Buttons */}
+            <div className="space-y-4 mb-6 sm:mb-8">
+              {([1, 2, 3, 4] as const).map((level) => {
+                const levelInfo = getPCPLevelInfo(level)
+                const isActive = state.pcpLevel === level
+                const isLoadingLevel = isLoading === level
+                const showConfirmationLevel = showConfirmation === level
+                
+                return (
+                  <div key={level} className="animate-slide-down" style={{ animationDelay: `${level * 0.1}s` }}>
+                    <button
+                      onClick={() => handleActivatePCP(level)}
+                      disabled={isLoadingLevel || (state.pcpActivated && !isActive)}
+                      className={`
+                        relative w-full px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6
+                        text-base sm:text-lg md:text-xl font-bold
+                        rounded-xl sm:rounded-2xl
+                        transition-all duration-300
+                        focus:outline-none focus:ring-4 focus:ring-offset-2
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        active:scale-95
+                        overflow-hidden
+                        ${
+                          isLoadingLevel || (state.pcpActivated && !isActive)
+                            ? `bg-gradient-to-r ${levelInfo.color} text-white shadow-xl opacity-60`
+                            : `bg-gradient-to-r ${levelInfo.color} ${levelInfo.hoverColor} text-white shadow-2xl hover:shadow-xl transform hover:scale-105`
+                        }
+                      `}
+                      aria-label={`Declarar PCP ${levelInfo.name}`}
+                    >
+                      {/* Shine effect */}
+                      {!isLoadingLevel && !state.pcpActivated && (
+                        <div className="absolute inset-0 -top-2 -left-2 w-8 h-full bg-white/20 rotate-12 animate-shimmer" />
+                      )}
+                      {isLoadingLevel ? (
+                        <span className="flex items-center justify-center">
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          <span>Ativando...</span>
+                        </span>
+                      ) : isActive ? (
+                        <span className="flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 sm:w-6 sm:h-6 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          <span>PCP {levelInfo.name} Ativado</span>
+                        </span>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <span>Declarar PCP {levelInfo.name}</span>
+                          <span className="text-xs sm:text-sm opacity-90 mt-1 font-normal">
+                            {levelInfo.description}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Confirmation Message */}
+                    {showConfirmationLevel && (
+                      <div
+                        className={`mt-4 p-4 sm:p-5 ${levelInfo.bgColor} border-2 ${levelInfo.borderColor} rounded-xl sm:rounded-2xl animate-slide-up shadow-xl`}
+                        role="alert"
+                        aria-live="polite"
+                      >
+                        <div className="flex items-center justify-center sm:justify-start">
+                          <svg
+                            className={`w-5 h-5 sm:w-6 sm:h-6 ${levelInfo.textColor} mr-2 flex-shrink-0`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <p className={`text-sm sm:text-base ${levelInfo.textColor} font-medium text-center sm:text-left`}>
+                            PCP {levelInfo.name} ATIVADO. Mobilizando equipes...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-
-            {/* Main Button */}
-            <button
-              onClick={handleActivatePCP}
-              disabled={isLoading || state.pcpActivated}
-              className={`
-                relative w-full sm:w-auto px-8 sm:px-10 md:px-12 py-4 sm:py-5 md:py-6
-                text-base sm:text-lg md:text-xl font-bold
-                rounded-2xl sm:rounded-3xl
-                transition-all duration-300
-                focus:outline-none focus:ring-4 focus:ring-fuchsia-300 focus:ring-offset-2
-                disabled:opacity-50 disabled:cursor-not-allowed
-                active:scale-95
-                overflow-hidden
-                ${
-                  isLoading || state.pcpActivated
-                    ? 'bg-gradient-to-r from-fuchsia-400 to-fuchsia-500 text-white shadow-xl'
-                    : 'bg-gradient-to-r from-fuchsia-600 via-fuchsia-700 to-purple-600 hover:from-fuchsia-700 hover:via-fuchsia-800 hover:to-purple-700 text-white shadow-2xl hover:shadow-fuchsia-500/50 transform hover:scale-105 animate-pulse-glow'
-                }
-              `}
-              aria-label="Declarar PCP Nível 1"
-            >
-              {/* Shine effect */}
-              {!isLoading && !state.pcpActivated && (
-                <div className="absolute inset-0 -top-2 -left-2 w-8 h-full bg-white/20 rotate-12 animate-shimmer" />
-              )}
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  <span className="sm:hidden">Ativando...</span>
-                  <span className="hidden sm:inline">Ativando...</span>
-                </span>
-              ) : state.pcpActivated ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 sm:w-6 sm:h-6 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="sm:hidden">Ativado</span>
-                  <span className="hidden sm:inline">PCP Nível 1 Ativado</span>
-                </span>
-              ) : (
-                <>
-                  <span className="sm:hidden">Declarar PCP</span>
-                  <span className="hidden sm:inline">Declarar PCP Nível 1</span>
-                </>
-              )}
-            </button>
-
-            {/* Confirmation Message */}
-            {showConfirmation && (
-              <div
-                className="mt-6 sm:mt-8 md:mt-10 p-4 sm:p-5 md:p-6 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-2 border-green-300 rounded-xl sm:rounded-2xl animate-slide-up shadow-xl"
-                role="alert"
-                aria-live="polite"
-              >
-                <div className="flex items-center justify-center sm:justify-start">
-                  <svg
-                    className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 mr-2 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <p className="text-sm sm:text-base text-green-800 font-medium text-center sm:text-left">
-                    PCP Nível 1 ATIVADO. Mobilizando equipes...
-                  </p>
-                </div>
-              </div>
-            )}
 
             {/* Info Text */}
             <p className="mt-6 sm:mt-8 md:mt-10 text-xs sm:text-sm text-gray-500 px-2 text-center leading-relaxed">
-              Este comando disparará alertas para as equipes médica e de higienização
+              Selecione o nível de PCP conforme a situação. O sistema disparará alertas para as equipes médica e de higienização
             </p>
 
             {/* Quick Navigation */}

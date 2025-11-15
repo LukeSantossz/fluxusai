@@ -70,7 +70,7 @@ export default function Page6ClinicalPharmacy() {
     },
   ])
 
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([
+  const [prescriptions] = useState<Prescription[]>([
     {
       id: '1',
       patient: 'Maria Silva',
@@ -166,19 +166,6 @@ export default function Page6ClinicalPharmacy() {
         return '🔴'
       default:
         return 'ℹ️'
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-red-50 text-red-700 border-red-200'
-      case 'reviewed':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200'
-      case 'resolved':
-        return 'bg-green-50 text-green-700 border-green-200'
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200'
     }
   }
 

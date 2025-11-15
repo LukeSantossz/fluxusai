@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
 export type BedStatus = 'WAITING_SIGNATURE' | 'WAITING_CLEANING' | 'READY'
+export type PCPLevel = 1 | 2 | 3 | 4 | null
 
 interface AppState {
+  pcpLevel: PCPLevel
   pcpActivated: boolean
   medicalConfirmed: boolean
   cleaningCompleted: boolean
@@ -12,13 +14,14 @@ interface AppState {
 
 interface StateContextType {
   state: AppState
-  activatePCP: () => void
+  activatePCP: (level: PCPLevel) => void
   confirmMedical: () => void
   completeCleaning: () => void
   reset: () => void
 }
 
 const initialState: AppState = {
+  pcpLevel: null,
   pcpActivated: false,
   medicalConfirmed: false,
   cleaningCompleted: false,
@@ -31,9 +34,10 @@ const StateContext = createContext<StateContextType | undefined>(undefined)
 export function StateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState)
 
-  const activatePCP = () => {
+  const activatePCP = (level: PCPLevel) => {
     setState(prev => ({
       ...prev,
+      pcpLevel: level,
       pcpActivated: true,
       bedStatus: 'WAITING_SIGNATURE',
     }))
