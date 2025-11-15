@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useAppState } from '../context/StateContext'
+import { useInventory } from '../context/InventoryContext'
 
 interface Alert {
   id: string
@@ -23,6 +25,15 @@ interface Prescription {
 }
 
 export default function Page6ClinicalPharmacy() {
+  const { state } = useAppState()
+  const { items } = useInventory()
+  
+  // Encontrar paciente prioritário do PCP
+  const pcpPatient = useMemo(() => {
+    return state.patients.find(p => p.pcpPriority)
+  }, [state.patients])
+
+  // Gerar alertas baseados nos pacientes e medicamentos do estoque
   const [alerts, setAlerts] = useState<Alert[]>([
     {
       id: '1',
@@ -70,40 +81,39 @@ export default function Page6ClinicalPharmacy() {
     },
   ])
 
-  const [prescriptions] = useState<Prescription[]>([
-    {
-      id: '1',
-      patient: 'Maria Silva',
-      bed: '302B',
-      medications: ['Warfarina', 'AAS', 'Omeprazol'],
-      status: 'flagged',
-      aiScore: 85,
-    },
-    {
-      id: '2',
-      patient: 'João Santos',
-      bed: '405A',
-      medications: ['Insulina Regular', 'Metformina'],
-      status: 'flagged',
-      aiScore: 72,
-    },
-    {
-      id: '3',
-      patient: 'Ana Costa',
-      bed: '501A',
-      medications: ['Noradrenalina', 'Fentanil', 'Midazolam'],
-      status: 'critical',
-      aiScore: 95,
-    },
-    {
-      id: '4',
-      patient: 'Pedro Oliveira',
-      bed: '203C',
-      medications: ['Amoxicilina', 'Paracetamol'],
-      status: 'normal',
-      aiScore: 15,
-    },
-  ])
+  // Gerar prescrições baseadas nos pacientes do contexto
+  const prescriptions = useMemo(() => {
+    return state.patients.map((patient) => {
+      // Verificar disponibilidade de medicamentos no estoque
+      const unavailableMeds = patient.medications.filter(med => {
+        const item = items.find(i => i.name.toLowerCase().includes(med.toLowerCase()))
+        return !item || item.status === 'out' || item.status === 'critical'
+      })
+
+      let status: 'normal' | 'flagged' | 'critical' = 'normal'
+      let aiScore = 15
+
+      if (patient.pcpPriority) {
+        status = 'critical'
+        aiScore = 95
+      } else if (unavailableMeds.length > 0) {
+        status = 'flagged'
+        aiScore = 70 + (unavailableMeds.length * 5)
+      } else if (patient.medications.length > 3) {
+        status = 'flagged'
+        aiScore = 60
+      }
+
+      return {
+        id: patient.id,
+        patient: patient.name,
+        bed: patient.bed,
+        medications: patient.medications,
+        status,
+        aiScore: Math.min(aiScore, 100),
+      }
+    })
+  }, [state.patients, items])
 
   const [filterAlertType, setFilterAlertType] = useState<string>('all')
   const [filterAlertPriority, setFilterAlertPriority] = useState<string>('all')
@@ -120,10 +130,18 @@ export default function Page6ClinicalPharmacy() {
   }, [alerts, filterAlertType, filterAlertPriority])
 
   const filteredPrescriptions = useMemo(() => {
-    return prescriptions.filter((prescription) => {
+    const filtered = prescriptions.filter((prescription) => {
       return filterPrescriptionStatus === 'all' || prescription.status === filterPrescriptionStatus
     })
-  }, [prescriptions, filterPrescriptionStatus])
+    // Ordenar: PCP primeiro, depois por score
+    return filtered.sort((a, b) => {
+      const aIsPCP = state.patients.find(p => p.id === a.id)?.pcpPriority || false
+      const bIsPCP = state.patients.find(p => p.id === b.id)?.pcpPriority || false
+      if (aIsPCP && !bIsPCP) return -1
+      if (!aIsPCP && bIsPCP) return 1
+      return b.aiScore - a.aiScore
+    })
+  }, [prescriptions, filterPrescriptionStatus, state.patients])
 
   const handleReviewAlert = (alertId: string) => {
     setAlerts((prev) =>
@@ -197,6 +215,60 @@ export default function Page6ClinicalPharmacy() {
             </div>
           </div>
         </div>
+
+        {/* PCP Patient Alert */}
+        {state.pcpActivated && pcpPatient && (
+          <div className={`mb-6 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 shadow-lg animate-slide-down ${
+            state.pcpLevel === 1 ? 'bg-blue-50 border-blue-300' :
+            state.pcpLevel === 2 ? 'bg-yellow-50 border-yellow-300' :
+            state.pcpLevel === 3 ? 'bg-orange-50 border-orange-300' :
+            'bg-red-50 border-red-300'
+          }`}>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    state.pcpLevel === 1 ? 'bg-blue-200' :
+                    state.pcpLevel === 2 ? 'bg-yellow-200' :
+                    state.pcpLevel === 3 ? 'bg-orange-200' :
+                    'bg-red-200'
+                  }`}>
+                    <span className="text-2xl">⚠️</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-gray-900">Paciente Prioritário PCP Nível {state.pcpLevel}</h3>
+                    <p className="text-sm text-gray-700">{pcpPatient.name} - Leito {pcpPatient.bed}</p>
+                  </div>
+                </div>
+                <div className="bg-white/80 rounded-lg p-4 mb-3">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Diagnóstico: {pcpPatient.diagnosis}</p>
+                  <p className="text-sm text-gray-600 mb-2">Medicamentos Prescritos:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pcpPatient.medications.map((med, idx) => {
+                      const inventoryItem = items.find(i => i.name.toLowerCase().includes(med.toLowerCase()))
+                      const isAvailable = inventoryItem && inventoryItem.status !== 'out' && inventoryItem.status !== 'critical'
+                      return (
+                        <span
+                          key={idx}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
+                            isAvailable
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          {med} {!isAvailable && '⚠️'}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">
+                  ⚠️ Verifique a disponibilidade dos medicamentos no estoque antes da dispensação
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">

@@ -1,77 +1,19 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-
-interface InventoryItem {
-  id: string
-  name: string
-  category: string
-  currentStock: number
-  minStock: number
-  maxStock: number
-  unit: string
-  status: 'ok' | 'low' | 'critical' | 'out'
-  lastUpdate: string
-}
+import { useInventory, InventoryItem } from '../context/InventoryContext'
 
 export default function Page5InventoryManagement() {
-  const [items, setItems] = useState<InventoryItem[]>([
-    {
-      id: '1',
-      name: 'Soro Fisiológico 0,9% 500ml',
-      category: 'Medicamentos',
-      currentStock: 450,
-      minStock: 200,
-      maxStock: 800,
-      unit: 'unidades',
-      status: 'ok',
-      lastUpdate: '2024-01-15 14:30',
-    },
-    {
-      id: '2',
-      name: 'Luvas Cirúrgicas Estéreis',
-      category: 'Insumos',
-      currentStock: 85,
-      minStock: 100,
-      maxStock: 500,
-      unit: 'caixas',
-      status: 'low',
-      lastUpdate: '2024-01-15 13:15',
-    },
-    {
-      id: '3',
-      name: 'Máscara N95',
-      category: 'EPI',
-      currentStock: 0,
-      minStock: 50,
-      maxStock: 300,
-      unit: 'unidades',
-      status: 'out',
-      lastUpdate: '2024-01-15 12:00',
-    },
-    {
-      id: '4',
-      name: 'Gaze Estéril 10x10cm',
-      category: 'Insumos',
-      currentStock: 1200,
-      minStock: 500,
-      maxStock: 2000,
-      unit: 'pacotes',
-      status: 'ok',
-      lastUpdate: '2024-01-15 15:00',
-    },
-    {
-      id: '5',
-      name: 'Álcool 70% 1L',
-      category: 'Medicamentos',
-      currentStock: 25,
-      minStock: 30,
-      maxStock: 150,
-      unit: 'frascos',
-      status: 'critical',
-      lastUpdate: '2024-01-15 11:45',
-    },
-  ])
-
+  const { items, addItem, removeItem, updateItem } = useInventory()
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState<string | null>(null)
+  const [newItem, setNewItem] = useState({
+    name: '',
+    category: 'Medicamentos',
+    currentStock: 0,
+    minStock: 0,
+    maxStock: 0,
+    unit: 'unidades',
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -94,56 +36,76 @@ export default function Page5InventoryManagement() {
   const handleUpdateStock = () => {
     setIsUpdating(true)
     setTimeout(() => {
-      // Simular atualização
-      setItems((prev) =>
-        prev.map((item) => ({
-          ...item,
-          lastUpdate: new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        }))
-      )
+      // Simular atualização - atualiza todos os itens
+      items.forEach(item => {
+        updateItem(item.id, {})
+      })
       setIsUpdating(false)
     }, 1000)
   }
 
   const handleAddStock = (itemId: string, amount: number) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id === itemId) {
-          const newStock = item.currentStock + amount
-          let newStatus: 'ok' | 'low' | 'critical' | 'out' = item.status
-          
-          if (newStock >= item.minStock) {
-            newStatus = 'ok'
-          } else if (newStock > item.minStock * 0.5) {
-            newStatus = 'low'
-          } else if (newStock > 0) {
-            newStatus = 'critical'
-          } else {
-            newStatus = 'out'
-          }
-
-          return {
-            ...item,
-            currentStock: newStock,
-            status: newStatus,
-            lastUpdate: new Date().toLocaleString('pt-BR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-          }
-        }
-        return item
+    const item = items.find(i => i.id === itemId)
+    if (item) {
+      updateItem(itemId, {
+        currentStock: item.currentStock + amount,
       })
-    )
+    }
+  }
+
+  const handleAddItem = () => {
+    if (newItem.name && newItem.minStock > 0 && newItem.maxStock > newItem.minStock) {
+      addItem(newItem)
+      setNewItem({
+        name: '',
+        category: 'Medicamentos',
+        currentStock: 0,
+        minStock: 0,
+        maxStock: 0,
+        unit: 'unidades',
+      })
+      setShowAddModal(false)
+    }
+  }
+
+  const handleRemoveItem = (id: string) => {
+    if (confirm('Tem certeza que deseja remover este item?')) {
+      removeItem(id)
+    }
+  }
+
+  const handleEditItem = (item: InventoryItem) => {
+    setNewItem({
+      name: item.name,
+      category: item.category,
+      currentStock: item.currentStock,
+      minStock: item.minStock,
+      maxStock: item.maxStock,
+      unit: item.unit,
+    })
+    setShowEditModal(item.id)
+  }
+
+  const handleUpdateItem = () => {
+    if (showEditModal && newItem.name && newItem.minStock > 0 && newItem.maxStock > newItem.minStock) {
+      updateItem(showEditModal, {
+        name: newItem.name,
+        category: newItem.category,
+        currentStock: newItem.currentStock,
+        minStock: newItem.minStock,
+        maxStock: newItem.maxStock,
+        unit: newItem.unit,
+      })
+      setShowEditModal(null)
+      setNewItem({
+        name: '',
+        category: 'Medicamentos',
+        currentStock: 0,
+        minStock: 0,
+        maxStock: 0,
+        unit: 'unidades',
+      })
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -341,6 +303,16 @@ export default function Page5InventoryManagement() {
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
               Itens em Estoque ({filteredItems.length})
             </h2>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Adicionar Item</span>
+              <span className="sm:hidden">+</span>
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -353,12 +325,13 @@ export default function Page5InventoryManagement() {
                   <th className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Mín/Máx</th>
                   <th className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Status</th>
                   <th className="text-right py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Última Atualização</th>
+                  <th className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-gray-700">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                    <td colSpan={7} className="py-8 text-center text-gray-500">
                       Nenhum item encontrado com os filtros aplicados
                     </td>
                   </tr>
@@ -398,6 +371,28 @@ export default function Page5InventoryManagement() {
                       </td>
                       <td className="py-3 px-2 sm:px-4 text-right">
                         <span className="text-xs text-gray-500">{item.lastUpdate}</span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditItem(item)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            aria-label="Editar item"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            aria-label="Remover item"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -459,6 +454,200 @@ export default function Page5InventoryManagement() {
           </div>
         </div>
       </div>
+
+      {/* Modal Adicionar Item */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Adicionar Novo Item</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Item</label>
+                <input
+                  type="text"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ex: Soro Fisiológico"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select
+                  value={newItem.category}
+                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Medicamentos">Medicamentos</option>
+                  <option value="Insumos">Insumos</option>
+                  <option value="EPI">EPI</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Atual</label>
+                  <input
+                    type="number"
+                    value={newItem.currentStock}
+                    onChange={(e) => setNewItem({ ...newItem, currentStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                  <input
+                    type="text"
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="unidades"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Mínimo</label>
+                  <input
+                    type="number"
+                    value={newItem.minStock}
+                    onChange={(e) => setNewItem({ ...newItem, minStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Máximo</label>
+                  <input
+                    type="number"
+                    value={newItem.maxStock}
+                    onChange={(e) => setNewItem({ ...newItem, maxStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  setNewItem({
+                    name: '',
+                    category: 'Medicamentos',
+                    currentStock: 0,
+                    minStock: 0,
+                    maxStock: 0,
+                    unit: 'unidades',
+                  })
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddItem}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Item */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Editar Item</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Item</label>
+                <input
+                  type="text"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select
+                  value={newItem.category}
+                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Medicamentos">Medicamentos</option>
+                  <option value="Insumos">Insumos</option>
+                  <option value="EPI">EPI</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Atual</label>
+                  <input
+                    type="number"
+                    value={newItem.currentStock}
+                    onChange={(e) => setNewItem({ ...newItem, currentStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                  <input
+                    type="text"
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Mínimo</label>
+                  <input
+                    type="number"
+                    value={newItem.minStock}
+                    onChange={(e) => setNewItem({ ...newItem, minStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Máximo</label>
+                  <input
+                    type="number"
+                    value={newItem.maxStock}
+                    onChange={(e) => setNewItem({ ...newItem, maxStock: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditModal(null)
+                  setNewItem({
+                    name: '',
+                    category: 'Medicamentos',
+                    currentStock: 0,
+                    minStock: 0,
+                    maxStock: 0,
+                    unit: 'unidades',
+                  })
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleUpdateItem}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

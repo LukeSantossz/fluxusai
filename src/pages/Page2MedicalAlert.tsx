@@ -1,17 +1,35 @@
-import { useEffect, useState } from 'react'
-import { useAppState } from '../context/StateContext'
+import { useEffect, useState, useMemo } from 'react'
+import { useAppState, Patient } from '../context/StateContext'
 
 export default function Page2MedicalAlert() {
-  const { state, confirmMedical } = useAppState()
+  const { state, confirmMedical, setSelectedPatient } = useAppState()
   const [showModal, setShowModal] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
+  const [selectedPatientDetails, setSelectedPatientDetails] = useState<Patient | null>(null)
+
+  // Ordenar pacientes: PCP primeiro, depois por status crítico
+  const sortedPatients = useMemo(() => {
+    return [...state.patients].sort((a, b) => {
+      // Prioridade PCP primeiro
+      if (a.pcpPriority && !b.pcpPriority) return -1
+      if (!a.pcpPriority && b.pcpPriority) return 1
+      
+      // Depois por status crítico
+      const statusOrder = { critical: 0, monitoring: 1, discharge_pending: 2, stable: 3 }
+      return statusOrder[a.status] - statusOrder[b.status]
+    })
+  }, [state.patients])
 
   useEffect(() => {
-    // Simular pop-up quando PCP é ativado
+    // Mostrar modal quando PCP é ativado e há paciente prioritário
     if (state.pcpActivated && !state.medicalConfirmed) {
-      setShowModal(true)
+      const pcpPatient = state.patients.find(p => p.pcpPriority)
+      if (pcpPatient) {
+        setSelectedPatientDetails(pcpPatient)
+        setShowModal(true)
+      }
     }
-  }, [state.pcpActivated, state.medicalConfirmed])
+  }, [state.pcpActivated, state.medicalConfirmed, state.patients])
 
   const handleConfirm = () => {
     setIsConfirming(true)
@@ -26,35 +44,161 @@ export default function Page2MedicalAlert() {
     setShowModal(false)
   }
 
+  const getStatusColor = (status: Patient['status']) => {
+    switch (status) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 border-red-300'
+      case 'monitoring':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+      case 'discharge_pending':
+        return 'bg-blue-100 text-blue-800 border-blue-300'
+      case 'stable':
+        return 'bg-green-100 text-green-800 border-green-300'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300'
+    }
+  }
+
+  const getStatusLabel = (status: Patient['status']) => {
+    switch (status) {
+      case 'critical':
+        return 'Crítico'
+      case 'monitoring':
+        return 'Em Monitoramento'
+      case 'discharge_pending':
+        return 'Alta Pendente'
+      case 'stable':
+        return 'Estável'
+      default:
+        return 'Indefinido'
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
-      {/* Simulated Electronic Medical Record Background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 opacity-90 blur-sm animate-glow" />
-        <div className="absolute inset-0 p-4 sm:p-8 text-white opacity-30">
-          <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-            <div className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm">
-              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Prontuário Eletrônico</h2>
-              <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-                <p>Paciente: [Nome]</p>
-                <p>Leito: 501A</p>
-                <p>Diagnóstico: [Diagnóstico]</p>
-                <p>Evolução: [Texto borrado...]</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 py-6 sm:py-8 md:py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-200/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 left-20 w-80 h-80 bg-indigo-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 md:mb-10 animate-slide-down">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2">
+            Área Médica - Lista de Pacientes
+          </h1>
+          <p className="text-sm sm:text-base md:text-lg text-gray-600 font-medium">
+            Gestão de Pacientes e Assinatura de Altas
+          </p>
+        </div>
+
+        {/* PCP Alert Banner */}
+        {state.pcpActivated && state.pcpLevel && (
+          <div className={`mb-6 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 shadow-lg animate-slide-down ${
+            state.pcpLevel === 1 ? 'bg-blue-50 border-blue-300' :
+            state.pcpLevel === 2 ? 'bg-yellow-50 border-yellow-300' :
+            state.pcpLevel === 3 ? 'bg-orange-50 border-orange-300' :
+            'bg-red-50 border-red-300'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  state.pcpLevel === 1 ? 'bg-blue-200' :
+                  state.pcpLevel === 2 ? 'bg-yellow-200' :
+                  state.pcpLevel === 3 ? 'bg-orange-200' :
+                  'bg-red-200'
+                }`}>
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900">PCP Nível {state.pcpLevel} Ativado</h3>
+                  <p className="text-sm text-gray-700">
+                    {sortedPatients.filter(p => p.pcpPriority).length} paciente(s) com prioridade PCP
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 sm:p-4 backdrop-blur-sm">
-              <h3 className="text-base sm:text-lg font-semibold mb-2">Prescrições</h3>
-              <ul className="space-y-1 text-xs sm:text-sm list-disc list-inside">
-                <li>[Prescrição 1]</li>
-                <li>[Prescrição 2]</li>
-              </ul>
-            </div>
           </div>
+        )}
+
+        {/* Lista de Pacientes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {sortedPatients.map((patient) => (
+            <div
+              key={patient.id}
+              className={`bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border-2 transition-all duration-300 hover:shadow-xl hover:scale-105 animate-slide-down ${
+                patient.pcpPriority
+                  ? 'border-fuchsia-500 bg-gradient-to-br from-fuchsia-50/50 to-white'
+                  : 'border-gray-200'
+              }`}
+              style={{ animationDelay: `${sortedPatients.indexOf(patient) * 0.1}s` }}
+            >
+              {/* Header do Card */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">{patient.name}</h3>
+                    {patient.pcpPriority && (
+                      <span className="px-2 py-1 bg-fuchsia-600 text-white text-xs font-bold rounded-full animate-pulse">
+                        PCP
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">Leito: <span className="font-semibold">{patient.bed}</span></p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(patient.status)}`}>
+                  {getStatusLabel(patient.status)}
+                </span>
+              </div>
+
+              {/* Diagnóstico */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-1">Diagnóstico</p>
+                <p className="text-sm font-medium text-gray-900">{patient.diagnosis}</p>
+              </div>
+
+              {/* Medicamentos */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-2">Medicamentos</p>
+                <div className="flex flex-wrap gap-2">
+                  {patient.medications.map((med, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
+                    >
+                      {med}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex gap-2 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setSelectedPatient(patient.id)
+                    if (patient.pcpPriority && !state.medicalConfirmed) {
+                      setSelectedPatientDetails(patient)
+                      setShowModal(true)
+                    }
+                  }}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    patient.pcpPriority && !state.medicalConfirmed
+                      ? 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white shadow-lg'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                  }`}
+                >
+                  {patient.pcpPriority && !state.medicalConfirmed ? 'Assinar Alta' : 'Ver Detalhes'}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Modal Overlay */}
-      {showModal && (
+      {/* Modal de Alerta PCP */}
+      {showModal && selectedPatientDetails && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in"
           role="dialog"
@@ -139,6 +283,13 @@ export default function Page2MedicalAlert() {
               )}
             </div>
 
+            {/* Patient Info */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Paciente:</p>
+              <p className="text-base text-gray-700">{selectedPatientDetails.name}</p>
+              <p className="text-sm text-gray-600 mt-1">Leito: {selectedPatientDetails.bed} | Diagnóstico: {selectedPatientDetails.diagnosis}</p>
+            </div>
+
             {/* Task Description */}
             <div
               id="alert-description"
@@ -146,7 +297,7 @@ export default function Page2MedicalAlert() {
             >
               <p className="text-xs sm:text-sm text-gray-600 mb-2 font-medium">Tarefa Delegada:</p>
               <p className="text-base sm:text-lg font-semibold text-gray-900">
-                PRIORIDADE (PCP): Assinar alta Leito {state.bedNumber}
+                PRIORIDADE (PCP): Assinar alta Leito {selectedPatientDetails.bed}
               </p>
             </div>
 
@@ -216,54 +367,6 @@ export default function Page2MedicalAlert() {
                 </p>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Info when modal is not shown */}
-      {!showModal && !state.medicalConfirmed && (
-        <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <div className="text-center text-white animate-fade-in">
-            <div className="mb-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-base sm:text-lg mb-2 font-medium">Aguardando ativação do PCP</p>
-            <p className="text-sm sm:text-base text-gray-300">
-              O alerta aparecerá automaticamente quando um nível de PCP for declarado
-            </p>
-          </div>
-        </div>
-      )}
-
-      {state.medicalConfirmed && (
-        <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <div className="text-center text-white animate-fade-in">
-            <div className="mb-4 sm:mb-6">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-bounce-in">
-                <svg
-                  className="w-8 h-8 sm:w-10 sm:h-10 text-green-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-lg sm:text-xl font-semibold mb-2">Ação Confirmada</p>
-            <p className="text-sm sm:text-base text-gray-300">
-              Altas assinadas. Tarefa enviada para higienização.
-            </p>
           </div>
         </div>
       )}
