@@ -14,12 +14,13 @@ export default function Logo({ className = '', size = 'md' }: LogoProps) {
   const logoSrc = '/logo.png'
   const logoSvg = '/logo.svg'
 
+  // O scale já é aplicado via className do componente pai
   return (
     <div className={`${sizeClasses[size]} ${className} flex items-center justify-center`} aria-label="FluxusAI Logo">
       <img
         src={logoSrc}
         alt="FluxusAI Logo"
-        className="w-full h-full object-contain scale-150"
+        className="w-full h-full object-contain"
         loading="eager"
         onError={(e) => {
           // Fallback to SVG if PNG is not found
