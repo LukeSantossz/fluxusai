@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAppState, BedStatus } from '../context/StateContext'
 
 interface StatusConfig {
@@ -52,14 +53,20 @@ export default function Page4StatusDashboard() {
   const currentStatus = statusConfigs[state.bedStatus]
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 py-6 sm:py-8 md:py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-blue-200/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-20 left-20 w-80 h-80 bg-purple-200/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+      </div>
+      
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8 md:mb-10 animate-slide-down">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-700 to-gray-900 bg-clip-text text-transparent mb-2">
             Dashboard de Status
           </h1>
-          <p className="text-lg text-gray-600">Pronto-Socorro - Monitoramento em Tempo Real</p>
+          <p className="text-sm sm:text-base md:text-lg text-gray-600 font-medium">Pronto-Socorro - Monitoramento em Tempo Real</p>
         </div>
 
         {/* Status Cards Grid */}
@@ -68,8 +75,9 @@ export default function Page4StatusDashboard() {
           <div
             className={`
               col-span-1 md:col-span-2 lg:col-span-3
-              bg-white rounded-2xl shadow-xl border-2 p-6 sm:p-8
+              bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl border-2 p-5 sm:p-6 md:p-8 lg:p-10
               transition-all duration-500
+              hover:shadow-3xl hover:scale-[1.01]
               ${currentStatus.borderColor}
               ${isUpdating ? 'animate-pulse' : ''}
             `}
@@ -210,8 +218,8 @@ export default function Page4StatusDashboard() {
         </div>
 
         {/* Info Section */}
-        <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-5 sm:p-6 md:p-8 border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
             Informações do Sistema
           </h3>
           <div className="space-y-2 text-sm text-gray-600">
@@ -237,11 +245,11 @@ export default function Page4StatusDashboard() {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 bg-white rounded-xl shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="mt-4 sm:mt-6 bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-5 sm:p-6 md:p-8 border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
             Legenda de Status
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {Object.entries(statusConfigs).map(([status, config]) => (
               <div
                 key={status}
@@ -255,6 +263,35 @@ export default function Page4StatusDashboard() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Quick Navigation */}
+        <div className="mt-6 bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg p-5 sm:p-6 md:p-8 border border-gray-200">
+          <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-4">
+            Integração com Outras Áreas
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              to="/estoque"
+              className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:scale-105 border border-blue-200 group"
+            >
+              <span className="text-3xl mr-4 group-hover:scale-110 transition-transform">📦</span>
+              <div>
+                <p className="font-semibold text-blue-900">Gestão de Estoque</p>
+                <p className="text-xs sm:text-sm text-blue-700">Verificar disponibilidade de insumos</p>
+              </div>
+            </Link>
+            <Link
+              to="/farmacia"
+              className="flex items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all duration-200 hover:scale-105 border border-purple-200 group"
+            >
+              <span className="text-3xl mr-4 group-hover:scale-110 transition-transform">🤖</span>
+              <div>
+                <p className="font-semibold text-purple-900">Farmácia Clínica com IA</p>
+                <p className="text-xs sm:text-sm text-purple-700">Alertas de segurança medicamentosa</p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
